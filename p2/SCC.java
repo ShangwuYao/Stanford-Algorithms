@@ -2,7 +2,6 @@ import edu.princeton.cs.algs4.MaxPQ;
 
 import java.io.*;
 import java.util.*;
-
 /**
  * Created by Administrator on 2017/2/25.
  */
@@ -13,45 +12,130 @@ public class SCC {
     //implement kosaraju's algorithm
     private int t;
     private int s;
-    private int n;
+    private int n = 875714;//TODO: this should change  875714
     int[] finishingtime;
-    private void DFS_loop(graph G){
+    /**
+     * change isExplored from set to boolean[], easier
+     */
+    boolean[] isExplored;
+    HashMap<Integer,Integer> leader = new HashMap<>();
+
+    private void DFS_loop(ArrayList<Integer>[] G){
+
+        boolean[] terminated = new boolean[n+1];
         //refresh the value of isExplored
-        isExplored = new HashSet<>();
+        isExplored = new boolean[n+1];
+        for (int i =0;i<n+1;i++){
+            isExplored[i]=false;
+            terminated[i] = false;
+        }
 
-
-        for (int i = n;i>0;i--){
+        /*for (int i = n;i>0;i--){
             // in the order of the finishing time reversed.
             // should use the index as finishing time, and point to the vertices
             int v =finishingtime[i];
             s = v;
-            if (!isExplored.contains(v)){
+            if (!isExplored[v]){
                 DFS(G,v);
+            }
+        }*/
+
+        /** try and rewrite recursion with a stack*/
+        Stack<Integer> stack = new Stack();
+
+        for (int i = n;i>0;i--){
+            int v = finishingtime[i];
+            s = v;
+            /** SHOULD use peek() and if(!isEmpty()), then last one will still be processed*/
+            if (!isExplored[v]) {
+                boolean isinital = true;
+                int current = v;
+                while (!stack.isEmpty() || isinital) {
+                    isinital = false;
+                    if (!isExplored[current]) {
+                        isExplored[current] = true;
+                        stack.push(current);
+
+                        int val;
+                        if (leader.containsKey(s)){
+                            val = (int) leader.get(s) + 1;
+                        }else{
+                            val = 1;
+                        }
+                        leader.put(s,val);
+
+                        //if it is not explored
+                        for (Integer j : G[current]) {
+                            // if j not yet explored
+                            if (!isExplored[j]) {
+                                stack.push(j);
+                            }// if explored, current becomes this one, so don't push.
+                        }
+                    } else if (!terminated[current]) {
+                        // end
+                        terminated[current] = true;
+                    }//if terminated, do nothing.
+                    // iterate
+                    current = stack.pop();
+                }
             }
         }
     }
-    private void DFS_loop_rev(graph G){
+    private void DFS_loop_rev(ArrayList<Integer>[] G){
         t = 0;
         s = -1;
         // SCC 875714
-        n = 875714;//TODO: this should change
         finishingtime = new int[n+1];
+        boolean[] terminated = new boolean[n+1];
         //refresh the value of isExplored
-        isExplored = new HashSet<>();
+        isExplored = new boolean[n+1];
+        for (int i =0;i<n+1;i++){
+            isExplored[i]=false;
+            terminated[i] = false;
+        }
+        /*
         for (int i = n;i>0;i--){
-            if (!isExplored.contains(i)) {
+            if (!isExplored[i]) {
                 s = i;
                 DFS_rev(G, i);
             }
         }
+        */
+
+        /** try and rewrite recursion with a stack*/
+        Stack<Integer> stack = new Stack();
+
+        for (int i = n;i>0;i--){
+            if (!isExplored[i]) {
+                int current = i;
+                while (true) {
+                    if (!isExplored[current]) {
+                        isExplored[current] = true;
+                        stack.push(current);
+                        //if it is not explored
+                        for (Integer j : G[current]) {
+                            // if j not yet explored
+                            if (!isExplored[j]) {
+                                stack.push(j);
+                            }// if explored, current becomes this one, so don't push.
+                        }
+                    } else if (!terminated[current]) {
+                        // end
+                        t++;
+                        finishingtime[t] = current;
+                        terminated[current] = true;
+                    }//if terminated, do nothing.
+                    // iterate
+                    if (stack.isEmpty()) break;
+                    current = stack.pop();
+                }
+            }
+        }
     }
-
-
-    Set<Integer> isExplored = new HashSet<>();
-    HashMap<Integer,Integer> leader = new HashMap<>();
-    private void DFS(graph G,int i){
+    /**method with recursion, will cause a StackOverflowError when the data is too big.*/
+    private void DFS(ArrayList<Integer>[] G,int i){
         //mark i as explored
-        isExplored.add(i);
+        isExplored[i] = true;
         //set leader(i) to be s
         int val;
         if (leader.containsKey(s)){
@@ -61,20 +145,36 @@ public class SCC {
         }
         leader.put(s,val);
 
-        // arc(i,j)
-        List<Integer> templist = G.getGraph().get(i);
-        if (templist != null) {
-            for (int j : templist) {
+         //arc(i,j)
+            for (Integer j : G[i]) {
                 // if j not yet explored
-                if (!isExplored.contains(j)) {
+                if (!isExplored[j]) {
                     DFS(G, j);
                 }
             }
-        }
     }
+    private void DFS_rev(ArrayList<Integer>[] G,int i){
+        //mark i as explored
+        isExplored[i] = true;
+        // arc(i,j)
+        /**stackoverflow error
+         * change G from hashmap of list to array of list.
+         */
+
+        for (Integer j : G[i]) {
+            // if j not yet explored
+            if (!isExplored[j]) {
+                DFS_rev(G, j);
+            }
+        }
+        t++;
+        finishingtime[t] = i;
+    }
+
     private int findbiggest(HashMap<Integer,Integer> map){
         int biggest = 0;
         int biggestindex = 0;
+        /**the time complexity is actually nlogn, don't do this, sort and count instead.*/
         for (int i = 1; i<n+1;i++){
             if (map.containsKey(i) && biggest < map.get(i)){
                 biggest =map.get(i);
@@ -92,34 +192,18 @@ public class SCC {
         return res;
     }
 
-    private void DFS_rev(graph G,int i){
-        //mark i as explored
-        isExplored.add(i);
-        // arc(i,j)
-        List<Integer> templist = G.getRevGraph().get(i);
 
-        if (templist != null) {
-            for (int j : templist) {
-                // if j not yet explored
-                if (!isExplored.contains(j)) {
-                    DFS_rev(G, j);
-                }
-            }
-        }
-        t++;
-        finishingtime[t] = i;
-    }
 
     public static void main(String[] args){
         //reverse the graph
         SCC scc = new SCC();
         try {
-            graph G = new graph();
+            scc.graph();
             //run DFS-loop on G reversed
-            scc.DFS_loop_rev(G);
+            scc.DFS_loop_rev(scc.arrayreversed);
             //run DFS-loop on G
             //processing	nodes	in	decreasing	order	of	finishing	time
-            scc.DFS_loop(G);
+            scc.DFS_loop(scc.arrayOfLines);
         }catch (Exception ex){
             ex.printStackTrace();
         }
@@ -127,66 +211,41 @@ public class SCC {
         int[] res = scc.returnbiggests();
         System.out.print(Arrays.toString(res));
     }
-}
-    class graph{
 
-        private HashMap<Integer,List> TableOfLines;
-        private HashMap<Integer,List> Tablereversed;
-
-        public graph() throws FileNotFoundException{
-
-            //get the value from the file to listOfLines
-
+        //instantiate
+        private ArrayList<Integer>[] arrayOfLines = new ArrayList[n+1];
+        private ArrayList<Integer>[] arrayreversed= new ArrayList[n+1];
+        private void graph() throws FileNotFoundException{
             /**
              * SHOULD use array of list instead, much easier
              */
-            TableOfLines = new HashMap<>();
-            Tablereversed = new HashMap<>();
+
+            //initialization
+            for (int i = 0; i<n+1;i++) {
+                arrayOfLines[i] = new ArrayList<>(1);
+                arrayreversed[i] = new ArrayList<>(1);
+            }
 
             //TODO: this should change
             File file = new File("D:/javaer/abc/StanAl/p2/SCC.txt");
-            //FileInputStream fis = new FileInputStream(file);
             FileReader fr = new FileReader(file);
             BufferedReader bufferedReader = new BufferedReader(fr);
-            String temp ="";
-            String[] two = new String[2];
-            int first = 0;
-            int second = 0;
+            String str;
+            StringTokenizer st;
 
-            List<Integer> listofsamevalue = new LinkedList<>();
-            List<Integer> listofreversed = new LinkedList<>();
-            int tempfirst = 0;
             try {
-                while ((temp = bufferedReader.readLine()) != null){
-                    two = temp.split(" ");
-                    first = Integer.parseInt(two[0]);
-                    second = Integer.parseInt(two[1]);
-                    /*if (listofsamevalue.isEmpty() || first == tempfirst){
-                        listofsamevalue.add(second);
-                    }
-                    else {
-                        TableOfLines.put(first-1,listofsamevalue);
-                        listofsamevalue = new LinkedList<>();
-                    }
-                    tempfirst = first;*/
-                    if (TableOfLines.containsKey(first)) {
-                        listofsamevalue = TableOfLines.get(first);
-                    }else {
-                        listofsamevalue = new LinkedList<>();
-                    }
-                    listofsamevalue.add(second);
-                    TableOfLines.put(first, listofsamevalue);
+                while ((str = bufferedReader.readLine()) != null){
+                    /**
+                     * memorize this.
+                     */
+                    st = new StringTokenizer(str);
+                    Integer first = Integer.valueOf(st.nextToken());
+                    Integer second = Integer.valueOf(st.nextToken());
 
-                    if (Tablereversed.containsKey(second)) {
-                        listofreversed = Tablereversed.get(second);
-                    }else {
-                        listofreversed = new LinkedList<>();
-                    }
-                    listofreversed.add(first);
-                    Tablereversed.put(second, listofreversed);
+                    arrayOfLines[first].add(second);
+                    arrayreversed[second].add(first);
 
                 }
-                //TableOfLines.put(first,listofsamevalue);
                 fr.close();
                 bufferedReader.close();
             }
@@ -194,12 +253,6 @@ public class SCC {
                 ex.printStackTrace();
             }
         }
-        public HashMap<Integer,List> getGraph(){
-            return TableOfLines;
-        }
+}
 
-        public HashMap<Integer,List> getRevGraph(){
-            return Tablereversed;
-        }
-    }
 
