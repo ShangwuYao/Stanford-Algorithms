@@ -7,7 +7,7 @@ import java.util.*;
  */
 public class SCC {
     /**
-     * the goal is to find the five biggest SCC, and print them like 5,4,3,2,1
+     * the goal is to find the five biggest SCC using DFS, and print them like 5,4,3,2,1
      */
     //implement kosaraju's algorithm
     private int t;
@@ -50,6 +50,13 @@ public class SCC {
             if (!isExplored[v]) {
                 boolean isinital = true;
                 int current = v;
+                /**
+                 * this is actually VERY stupid, now that I think of it, I should push the
+                 * first element in before the loop, and start the loop with
+                 * current = stack.pop()
+                 * so that only using while(!stack.isEmpty()) is enough. no more isinitial
+                 * and break.
+                 */
                 while (!stack.isEmpty() || isinital) {
                     isinital = false;
                     if (!isExplored[current]) {
@@ -64,17 +71,13 @@ public class SCC {
                         }
                         leader.put(s,val);
 
-                        //if it is not explored
                         for (Integer j : G[current]) {
                             // if j not yet explored
                             if (!isExplored[j]) {
                                 stack.push(j);
                             }// if explored, current becomes this one, so don't push.
                         }
-                    } else if (!terminated[current]) {
-                        // end
-                        terminated[current] = true;
-                    }//if terminated, do nothing.
+                    }
                     // iterate
                     current = stack.pop();
                 }
@@ -175,6 +178,7 @@ public class SCC {
         int biggest = 0;
         int biggestindex = 0;
         /**the time complexity is actually nlogn, don't do this, sort and count instead.*/
+        /**using a heap data structure might be better*/
         for (int i = 1; i<n+1;i++){
             if (map.containsKey(i) && biggest < map.get(i)){
                 biggest =map.get(i);
